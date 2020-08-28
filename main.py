@@ -14,7 +14,11 @@ class Network(object):
         # i biases e weights sono salvati come liste di matrici per cui - ad esempio - weights[1] sara' una matrice
         # contenente i pesi che connettono il secondo e terzo strato di neuroni
 
+    def feedforward(self, activation, activation_function):
+        for biases, weights in zip(self.biases, self.weights):
+            activation = activation_function(np.dot(weights, activation) + biases)
+            # np.dot e' una funzione che effettua la moltiplicazione matriciale
 
-net = Network([2, 3, 1])
-print(net.biases)
-print (net.weights)
+
+def sigmoid(z):
+    return 1.0 / (1.0 + np.exp(-z))
