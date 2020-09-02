@@ -4,20 +4,30 @@ import numpy as np
 
 class Network(object):
     def __init__(self, sizes):
+        #passa in input il num di neuroni di ogni layer: array[input, L1, L2, ...]
         self.num_layers = len(sizes)
         self.sizes = sizes
-        self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
+        #self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
+        self.biases = [np.random.randn(1, y) for y in sizes[1:]] #ARRAY DI: matrice riga 1xL
         # randn ritorna una matrice di dimensione y, 1 - ovvero una matrice colonna il cui numero di righe e' pari
         # al numero di nodi nello strato corrente (escluso lo strato di input)
-        self.weights = [np.random.randn(y, x)
-                        for x, y in zip(sizes[:-1], sizes[1:])]
+
+        self.weights = [np.random.randn(x, y) for x, y in zip(sizes[1:], sizes[:-1])]
+        #ARRAY Per ogni layer L: LxL-1 (quando L=1 rappresentiamo la size dell'input)
+        #self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
         # i biases e weights sono salvati come liste di matrici per cui - ad esempio - weights[1] sara' una matrice
         # contenente i pesi che connettono il secondo e terzo strato di neuroni
 
-    def feedforward(self, activation, activation_function):
-        for biases, weights in zip(self.biases, self.weights):
-            activation = activation_function(np.dot(weights, activation) + biases)
-            # np.dot e' una funzione che effettua la moltiplicazione matriciale
+    def forwardPropagation(self, activation, activation_function):
+        #for biases, weights in zip(self.biases, self.weights):
+            #activation = activation_function(np.dot(weights, activation) + biases)
+        # np.dot e' una funzione che effettua la moltiplicazione matriciale
+
+        for weights, biases in zip(self.weights, self.biases):
+            #weights: LxL-1 , activation: L-1x1 , w * a : Lx1 , biases.T : Lx1
+            activation = activation_function(np.dot(weights, activation) + biases.transpose())
+            #activation: Lx1
+        return activation
 
     def stochastic_gradient_descent(self, training_data, epochs, mini_batch_size, eta, test_data=None):
         # training_data e' una lista di tuple (x, y) dove x e' l'input e y e' la corrispondente label
@@ -47,6 +57,27 @@ class Network(object):
         self.biases = [b - (eta / len(mini_batch)) * nb
                        for b, nb in zip(self.biases, nabla_b)]
 
+    #def backPropagation(self):
+
+
 
 def sigmoid(z):
     return 1.0 / (1.0 + np.exp(-z))
+
+#print('---INSERISCI IL NUMERO DI STRATI DELLA RETE---')
+#print('---INSERISCI LA FUNZIONE DI OUTPUT---')
+#val=input()
+val=Network([5, 3, 4, 3])
+print('----VAL---')
+print(val)
+act = np.random.randn(1,5)
+print('----INPUT---')
+print(act)
+print('----APPLICO FORWARD PROPAGATION---')
+act=val.forwardPropagation(act.transpose(),sigmoid)
+print('----OUTPUT---')
+print(act)
+
+
+
+
