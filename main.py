@@ -22,12 +22,16 @@ class Network(object):
         #for biases, weights in zip(self.biases, self.weights):
             #activation = activation_function(np.dot(weights, activation) + biases)
         # np.dot e' una funzione che effettua la moltiplicazione matriciale
-
-        for weights, biases in zip(self.weights, self.biases):
+        activation_array = [np.zeros(b.shape) for b in self.biases]
+        print(activation_array)
+        for weights, biases, x in zip(self.weights, self.biases, range(0, self.num_layers)):
             #weights: LxL-1 , activation: L-1x1 , w * a : Lx1 , biases.T : Lx1
-            activation = activation_function(np.dot(weights, activation) + biases.transpose())
+            a=np.dot(weights, activation) + biases.transpose()
+            activation_array[x][:]=a.T
+            activation = activation_function(a)
             #activation: Lx1
-        return activation
+
+        return activation, activation_array
 
     def stochastic_gradient_descent(self, training_data, epochs, mini_batch_size, eta, test_data=None):
         # training_data e' una lista di tuple (x, y) dove x e' l'input e y e' la corrispondente label
@@ -57,26 +61,57 @@ class Network(object):
         self.biases = [b - (eta / len(mini_batch)) * nb
                        for b, nb in zip(self.biases, nabla_b)]
 
-    #def backPropagation(self):
+    def backPropagation(self,activate,output,target):
+        #creiamo la matrice delta errore
+        delta_err=[np.zeros(b.shape) for b in self.biases]
+        #dovrebbe essere un for dall'ultimo strato al primo
+        #dobbiamo avere anche una matrice delle attivazioni?
+        #dobbiamo distinguere due matrici: delta_out e delta_hidden?
 
+        #nodi output
+        for k in range(output.size):
+            # Error = (Output value - Target value)
+            error = output[k] - target[k]
+            delta_err[-1][:, k] = error * dsigmoid(activate[-1][:, k]) #deve essere d(a)
+
+        print(delta_err)
+
+        # delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
+
+
+        #nodi interni
+        #tmp = [x * y for x, y in zip(output_deltas, sizes[:-1])]
+
+        #[a * b for a, b in Zip(lista, listb)]
 
 
 def sigmoid(z):
     return 1.0 / (1.0 + np.exp(-z))
 
+def dsigmoid(z):
+	return z * (1 - z)
+
 #print('---INSERISCI IL NUMERO DI STRATI DELLA RETE---')
 #print('---INSERISCI LA FUNZIONE DI OUTPUT---')
 #val=input()
-val=Network([5, 3, 4, 3])
-print('----VAL---')
-print(val)
-act = np.random.randn(1,5)
+val=Network([5, 3, 2])
+print('----RETE---')
+print('----PESI---')
+print(val.weights)
+print('----BIASES---')
+print(val.biases)
+input = np.random.randn(1,5)
 print('----INPUT---')
-print(act)
+print(input)
 print('----APPLICO FORWARD PROPAGATION---')
-act=val.forwardPropagation(act.transpose(),sigmoid)
+output,activation=val.forwardPropagation(input.transpose(),sigmoid)
 print('----OUTPUT---')
-print(act)
+print(output)
+expected=np.array([0,1])
+print('----TARGET---')
+print(expected)
+print('----APPLICO BACK PROPAGATION---')
+val.backPropagation(activation,output,expected)
 
 
 
