@@ -22,15 +22,14 @@ class Network(object):
         #for biases, weights in zip(self.biases, self.weights):
             #activation = activation_function(np.dot(weights, activation) + biases)
         # np.dot e' una funzione che effettua la moltiplicazione matriciale
+
         activation_array = [np.zeros(b.shape) for b in self.biases]
-        print(activation_array)
         for weights, biases, x in zip(self.weights, self.biases, range(0, self.num_layers)):
             #weights: LxL-1 , activation: L-1x1 , w * a : Lx1 , biases.T : Lx1
             a=np.dot(weights, activation) + biases.transpose()
             activation_array[x][:]=a.T
             activation = activation_function(a)
             #activation: Lx1
-
         return activation, activation_array
 
     def stochastic_gradient_descent(self, training_data, epochs, mini_batch_size, eta, test_data=None):
@@ -64,32 +63,37 @@ class Network(object):
     def backPropagation(self,activate,output,target):
         #creiamo la matrice delta errore
         delta_err=[np.zeros(b.shape) for b in self.biases]
-        #dovrebbe essere un for dall'ultimo strato al primo
-        #dobbiamo avere anche una matrice delle attivazioni?
         #dobbiamo distinguere due matrici: delta_out e delta_hidden?
-
         #nodi output
-        for k in range(output.size):
-            # Error = (Output value - Target value)
-            error = output[k] - target[k]
-            delta_err[-1][:, k] = error * dsigmoid(activate[-1][:, k]) #deve essere d(a)
-
-        print(delta_err)
-
-        # delta = self.cost_derivative(activations[-1], y) * sigmoid_prime(zs[-1])
-
-
+        error=output-target
+        delta_err[-1]= error.T * dsigmoid(activate[-1])
         #nodi interni
-        #tmp = [x * y for x, y in zip(output_deltas, sizes[:-1])]
+        for l in range(2,self.num_layers):
+            errore=np.dot(delta_err[-l+1],self.weights[-l+1])
+            delta_err[-l]= errore * dsigmoid(activate[-l])
 
-        #[a * b for a, b in Zip(lista, listb)]
+        #PROVA
+        prova=[np.zeros(b.shape) for b in self.biases]
+        for k in range(output.size):
+        # Error = (Output value - Target value)
+           error = output[k] - target[k]
+           prova[-1][:,k] = error * dsigmoid(activate[-1][:, k])
+
+        for l in range(2,self.num_layers):
+            x = 0.0
+            for k in range(output.size):
+                x +=  prova[-l+1][:,k] * self.weights[-l+1][k]
+             # now, change in node weight is given by dsigmoid() of activation of each hidden node times the error.
+            prova[-l] = x * dsigmoid(activate[-l])
+
+        return delta_err
 
 
 def sigmoid(z):
     return 1.0 / (1.0 + np.exp(-z))
 
 def dsigmoid(z):
-	return z * (1 - z)
+    return z * (1 - z)
 
 #print('---INSERISCI IL NUMERO DI STRATI DELLA RETE---')
 #print('---INSERISCI LA FUNZIONE DI OUTPUT---')
@@ -107,7 +111,7 @@ print('----APPLICO FORWARD PROPAGATION---')
 output,activation=val.forwardPropagation(input.transpose(),sigmoid)
 print('----OUTPUT---')
 print(output)
-expected=np.array([0,1])
+expected=np.array([[0],[1]])
 print('----TARGET---')
 print(expected)
 print('----APPLICO BACK PROPAGATION---')
