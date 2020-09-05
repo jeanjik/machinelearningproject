@@ -32,6 +32,38 @@ class Network(object):
             #activation: Lx1
         return activation, activation_array
 
+    def backPropagation(self,activate,output,target,activation_function):
+        #creiamo la matrice delta errore
+        delta_err=[np.zeros(b.shape) for b in self.biases]
+        #dobbiamo distinguere due matrici: delta_out e delta_hidden?
+        #nodi output
+        error=output-target
+        delta_err[-1]= error.T * activation_function(activate[-1])
+        #nodi interni
+        for l in range(2,self.num_layers):
+            errore=np.dot(delta_err[-l+1],self.weights[-l+1])
+            delta_err[-l]= errore * activation_function(activate[-l])
+
+        #come calcolo le derivate??
+        return delta_err
+
+    def backPropagationSecondaVersione(self,activate,output,target):
+        #PROVA
+        prova=[np.zeros(b.shape) for b in self.biases]
+        for k in range(output.size):
+        # Error = (Output value - Target value)
+           error = output[k] - target[k]
+           prova[-1][:,k] = error * dsigmoid(activate[-1][:, k])
+
+        for l in range(2,self.num_layers):
+            x = 0.0
+            for k in range(output.size):
+                x +=  prova[-l+1][:,k] * self.weights[-l+1][k]
+             # now, change in node weight is given by dsigmoid() of activation of each hidden node times the error.
+            prova[-l] = x * dsigmoid(activate[-l])
+
+        return prova
+
     def stochastic_gradient_descent(self, training_data, epochs, mini_batch_size, eta, test_data=None):
         # training_data e' una lista di tuple (x, y) dove x e' l'input e y e' la corrispondente label
         if test_data:
@@ -60,34 +92,6 @@ class Network(object):
         self.biases = [b - (eta / len(mini_batch)) * nb
                        for b, nb in zip(self.biases, nabla_b)]
 
-    def backPropagation(self,activate,output,target):
-        #creiamo la matrice delta errore
-        delta_err=[np.zeros(b.shape) for b in self.biases]
-        #dobbiamo distinguere due matrici: delta_out e delta_hidden?
-        #nodi output
-        error=output-target
-        delta_err[-1]= error.T * dsigmoid(activate[-1])
-        #nodi interni
-        for l in range(2,self.num_layers):
-            errore=np.dot(delta_err[-l+1],self.weights[-l+1])
-            delta_err[-l]= errore * dsigmoid(activate[-l])
-
-        #PROVA
-        prova=[np.zeros(b.shape) for b in self.biases]
-        for k in range(output.size):
-        # Error = (Output value - Target value)
-           error = output[k] - target[k]
-           prova[-1][:,k] = error * dsigmoid(activate[-1][:, k])
-
-        for l in range(2,self.num_layers):
-            x = 0.0
-            for k in range(output.size):
-                x +=  prova[-l+1][:,k] * self.weights[-l+1][k]
-             # now, change in node weight is given by dsigmoid() of activation of each hidden node times the error.
-            prova[-l] = x * dsigmoid(activate[-l])
-
-        return delta_err
-
 
 def sigmoid(z):
     return 1.0 / (1.0 + np.exp(-z))
@@ -98,7 +102,7 @@ def dsigmoid(z):
 #print('---INSERISCI IL NUMERO DI STRATI DELLA RETE---')
 #print('---INSERISCI LA FUNZIONE DI OUTPUT---')
 #val=input()
-val=Network([5, 3, 2])
+val=Network([5, 4, 4, 3])
 print('----RETE---')
 print('----PESI---')
 print(val.weights)
@@ -111,11 +115,14 @@ print('----APPLICO FORWARD PROPAGATION---')
 output,activation=val.forwardPropagation(input.transpose(),sigmoid)
 print('----OUTPUT---')
 print(output)
-expected=np.array([[0],[1]])
+expected=np.array([[0],[1],[0]])
 print('----TARGET---')
 print(expected)
 print('----APPLICO BACK PROPAGATION---')
-val.backPropagation(activation,output,expected)
+delta=val.backPropagation(activation,output,expected,dsigmoid)
+print 'DELTA:'
+print delta
+print val.backPropagationSecondaVersione(activation,output,expected)
 
 
 
