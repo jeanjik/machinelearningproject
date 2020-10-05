@@ -12,7 +12,7 @@ class Network(object):
         self.weights = [np.random.randn(x, y) for x, y in zip(sizes[1:], sizes[:-1])]
         # ARRAY Per ogni layer L: LxL-1 (quando L=1 rappresentiamo la size dell'input)
 
-    def forward_propagation(self, input, activation_function, output_function):
+    def forward_propagation(self, input, activation_function=fn.sigmoid, output_function=fn.identity):
         # activation sono i valori di input per i nodi (per il primo strato sono proprio gli input x)
         activation = input
         activation_array = [input.T]
@@ -25,8 +25,9 @@ class Network(object):
 
         return output_function(activation), activation_array
 
-    def back_propagation(self, activate, output, target, activation_function, derivative_activation_function,
-                         derivative_cost_function):
+    def back_propagation(self, activate, output, target,
+                         activation_function=fn.sigmoid, derivative_activation_function=fn.derivative_sigmoid,
+                         derivative_cost_function=fn.derivative_least_square):
         delta_err_b = [np.zeros(b.shape) for b in self.biases]  # creiamo la matrice delta errore
         derivative_err_w = [np.zeros(w.shape) for w in self.weights]
         error = derivative_cost_function(output=output, target=target)  # nodi output
@@ -44,24 +45,17 @@ class Network(object):
             n_test = len(test_data)
         n = len(training_data)
         for j in xrange(epochs):
-            output, activation = self.forward_propagation(training_data, fn.sigmoid, fn.identity)
-            random.shuffle(training_data)
-            der_w, der_b = self.back_propagation(activation, output, training_data, fn.sigmoid, fn.derivative_sigmoid,
-                                                 fn.derivative_least_square) #TODO: capire come mnist carica i training data
-            
+            sum_w = [np.zeros(w.shape) for w in self.weights]
+            sum_b = [np.zeros(b.shape) for b in self.weights]
+            for input, target in training_data:
+                output, activation = self.forward_propagation(input, fn.sigmoid, fn.identity)
+                random.shuffle(training_data)
+                der_w, der_b = self.back_propagation(activation, output, target)
+                sum_b = [sb + derb for sb, derb in zip(sum_b, der_b)]
+                sum_w = [sw + derw for sw, derw in zip(sum_w, der_w)]
+            self.weights = [(w - eta/len(training_data)) * momentum * wl for w, wl in zip(self.weights, sum_w)]
+            self.biases = [(b - eta / len(training_data)) * momentum * bl for b, bl in zip(self.biases, sum_b)]
 
-
-    def update_mini_batches(self, mini_batch, eta, momentum=1):
-        nabla_b = [np.zeros(b.shape) for b in self.biases]  # shape ritorna le dimensioni della matrice
-        nabla_w = [np.zeros(w.shape) for w in self.weights]
-        for x, y in mini_batch:
-            delta_nabla_b, delta_nabla_w = "cazzo"  # TODO: qua ci va la backpropagation
-            nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
-            nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
-        self.weights = [w - (eta / len(mini_batch)) * nw
-                        for w, nw in zip(self.weights, nabla_w)]
-        self.biases = [b - (eta / len(mini_batch)) * nb
-                       for b, nb in zip(self.biases, nabla_b)]
 
 
 def main():
@@ -74,7 +68,7 @@ def main():
     print('----INPUT---')
     print(input)
     print('----APPLICO FORWARD PROPAGATION---')
-    output, activation = val.forward_propagation(input, fn.sigmoid)
+    output, activation = val.forward_propagation(input)
     print('----OUTPUT---')
     print(output)
     print('---ACTIVATION---')
@@ -84,15 +78,11 @@ def main():
     print('----TARGET---')
     print(expected)
     print('----APPLICO BACK PROPAGATION---')
-    delta, der_err = val.back_propagation(activate=activation, output=output, target=expected,
-                                          activation_function=fn.sigmoid,
-                                          derivative_activation_function=fn.derivative_sigmoid,
-                                          derivative_cost_function=fn.derivative_least_square)
+    delta, der_err = val.back_propagation(activate=activation, output=output, target=expected)
     print 'DELTA:'
     print delta
     print 'DERIVATE ERRORE: '
     print der_err
 
 
-if "__name__" == "__main__":
-    main()
+main()
