@@ -22,7 +22,6 @@ class Network(object):
             # activation_array[layer][:] = a.T
             activation_array.append(a.T)
             activation = activation_function(a)  # activation: Lx1 (in questo caso e' cio' che noi chiamiamo z)
-
         return output_function(activation), activation_array
 
     def back_propagation(self, activate, output, target,
@@ -39,22 +38,27 @@ class Network(object):
             derivative_err_w[-layer] = np.dot(delta_err_b[-layer].T, activation_function(activate[-layer - 1]))
         return delta_err_b, derivative_err_w
 
-    def stochastic_gradient_descent(self, training_data, epochs, eta, momentum,test_data=None):
+    def batch_gradient_descent(self, training_data, epochs, eta, momentum, test_data=None):
         # training_data e' una lista di tuple (x, y) dove x e' l'input e y e' la corrispondente label
         if test_data:
             n_test = len(test_data)
         n = len(training_data)
         for j in xrange(epochs):
+            random.shuffle(training_data)
             sum_w = [np.zeros(w.shape) for w in self.weights]
-            sum_b = [np.zeros(b.shape) for b in self.weights]
+            sum_b = [np.zeros(b.shape) for b in self.biases]
             for input, target in training_data:
-                output, activation = self.forward_propagation(input, fn.sigmoid, fn.identity)
-                random.shuffle(training_data)
+                output, activation = self.forward_propagation(input)
                 der_w, der_b = self.back_propagation(activation, output, target)
                 sum_b = [sb + derb for sb, derb in zip(sum_b, der_b)]
                 sum_w = [sw + derw for sw, derw in zip(sum_w, der_w)]
             self.weights = [(w - eta/len(training_data)) * momentum * wl for w, wl in zip(self.weights, sum_w)]
             self.biases = [(b - eta / len(training_data)) * momentum * bl for b, bl in zip(self.biases, sum_b)]
+
+
+    def evaluate_error(self, input, target, error_function):
+        output, _ = self.forward_propagation(input)
+        print(error_function(output, target))
 
 
 
