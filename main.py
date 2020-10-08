@@ -33,7 +33,7 @@ class Network(object):
         act = derivative_activation_function(activate[-1])
         delta_err_b[-1] = np.array(der_error * act).T  # nodi output
         derivative_err_w[-1] = np.dot(delta_err_b[-1].T, activation_function(activate[-2]).T)
-        for layer in xrange(2, self.num_layers):  # nodi interni
+        for layer in range(2, self.num_layers):  # nodi interni
             temp = np.dot(delta_err_b[-layer + 1], self.weights[-layer + 1])
             temp2 = activation_function(activate[-layer]).T
             delta_err_b[-layer] = temp * temp2  # formula ricorrente per i nodi interni
@@ -44,7 +44,7 @@ class Network(object):
     def batch_gradient_descent(self, training_data, epochs, eta, momentum):
         # training_data e' una lista di tuple (x, y) dove x e' l'input e y e' la corrispondente label
         err = np.zeros(epochs)
-        for j in xrange(epochs):
+        for j in range(epochs):
             random.shuffle(training_data)
             sum_w = [np.zeros(w.shape) for w in self.weights]
             sum_b = [np.zeros(b.shape) for b in self.biases]
@@ -71,8 +71,8 @@ class Network(object):
 
 def main():
     val = Network([784, 200, 10])
-    input = np.random.rand(200, 784)
-    target = np.random.rand(200, 10)
+    input = np.random.rand(20, 784)
+    target = np.random.rand(20, 10)
     training_data = [(i, t) for i, t in zip(input, target)]
 
     # print('----INPUT---')
@@ -93,7 +93,7 @@ def main():
     # print delta
     # print 'DERIVATE ERRORE: '
     # print der_err
-    err = val.batch_gradient_descent(training_data, 3, 0.1, 0.01)
+    err = val.batch_gradient_descent(training_data, 3, 0.01, 0.01)
     print(err)
 
 
