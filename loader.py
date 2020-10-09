@@ -12,6 +12,9 @@ def load_data(path, num_images):
         buffer = file_training_set.read(num_images*IMAGE_SIZE) # letto un'immagine intera
         training_set = np.frombuffer(buffer, dtype=np.uint8).astype(np.float32)
         training_set = training_set.reshape(num_images, IMAGE_SIZE)
+        for i, row in enumerate(training_set):
+            for j, col in enumerate(row):
+                training_set[i][j] = training_set[i][j]/255
     with gzip.open('./trainingdata/trainin_set_labels.gz') as file_labels:
         buf2 = file_labels.read(8)
         buf2 = file_labels.read(num_images)

@@ -1,7 +1,7 @@
 import random
 import numpy as np
 import functions as fn
-
+import loader as ld
 
 class Network(object):
     def __init__(self, sizes):
@@ -56,17 +56,24 @@ class Network(object):
                 sum_w = [sw + derw for sw, derw in zip(sum_w, der_w)]
             self.weights = [(w - eta/len(training_data)) * momentum * wl for w, wl in zip(self.weights, sum_w)]
             self.biases = [(b - eta / len(training_data)) * momentum * bl for b, bl in zip(self.biases, sum_b)]
-            print(j)
             err[j] = self.evaluate_error(training_data, fn.least_square)
+            print(err[j])
         return err
 
     def evaluate_error(self, training_data, error_function):
         err = 0
         for input, target in training_data:
             output, _ = self.forward_propagation(input)
-            err = err + error_function(output, target)
-        return err
+            err = error_function(output, target)
+        return err/len(training_data)
 
+    def evaluate(self, test_data):
+        test_results = []
+        for x, y in test_data:
+            out, _ = self.forward_propagation(x)
+            res = (out.T, y)
+            test_results.append(res)
+        print(test_results)
 
 
 def main():
@@ -74,7 +81,8 @@ def main():
     input = np.random.rand(20, 784)
     target = np.random.rand(20, 10)
     training_data = [(i, t) for i, t in zip(input, target)]
-
+    tr_d = ld.load_data(0, 1000)
+    test_data = ld.load_data(0, 200)
     # print('----INPUT---')
     # print(input)
     # print('----APPLICO FORWARD PROPAGATION---')
@@ -93,8 +101,9 @@ def main():
     # print delta
     # print 'DERIVATE ERRORE: '
     # print der_err
-    err = val.batch_gradient_descent(training_data, 3, 0.01, 0.01)
+    err = val.batch_gradient_descent(tr_d, 5, 2, 0.9)
     print(err)
+    print(val.evaluate(test_data))
 
 
 main()
