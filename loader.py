@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 IMAGE_SIZE = 784
 
-
 def load_data(path, num_images):
     with gzip.open('./trainingdata/training_set_images.gz', 'r') as file_training_set:
         buffer = file_training_set.read(16)

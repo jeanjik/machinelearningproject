@@ -29,10 +29,11 @@ class Network(object):
                          derivative_cost_function=fn.derivative_least_square):
         delta_err_b = [np.zeros(b.shape) for b in self.biases]  # creiamo la matrice delta errore
         derivative_err_w = [np.zeros(w.shape) for w in self.weights]
-        der_error = derivative_cost_function(output=output, target=target)
+        der_error = derivative_cost_function(output=output, target=target)[np.newaxis]
         act = derivative_activation_function(activate[-1])
-        delta_err_b[-1] = np.array(der_error * act).T  # nodi output
-        derivative_err_w[-1] = np.dot(delta_err_b[-1].T, activation_function(activate[-2]).T)
+        delta_err_b[-1] = np.array(der_error * act.T)  # nodi output
+        tmp=activation_function(activate[-2])[np.newaxis]
+        derivative_err_w[-1] = np.dot(delta_err_b[-1].T, tmp)
         for layer in range(2, self.num_layers):  # nodi interni
             temp = np.dot(delta_err_b[-layer + 1], self.weights[-layer + 1])
             temp2 = activation_function(activate[-layer]).T
@@ -51,7 +52,6 @@ class Network(object):
             for input, label in training_data:
                 output, activation = self.forward_propagation(input)
                 der_b, der_w = self.back_propagation(activation, output, label)
-                #print(der_w, der_b)
                 sum_b = [sb + derb for sb, derb in zip(sum_b, der_b)]
                 sum_w = [sw + derw for sw, derw in zip(sum_w, der_w)]
             self.weights = [(w - eta/len(training_data)) * momentum * wl for w, wl in zip(self.weights, sum_w)]
