@@ -44,9 +44,10 @@ class Network(object):
             derivative_err_w[-l] = np.dot(delta_error, activations[-l-1].transpose())
         return delta_err_b, derivative_err_w
 
-    def batch_gradient_descent(self, training_data, epochs, eta, momentum, test_data):
+    def batch_gradient_descent(self, training_data, epochs, eta, momentum, test_data, error_function=fn.least_square):
         # training_data e' una lista di tuple (x, y) dove x e' l'input e y e' la corrispondente label
-        m = len(training_data)
+        pre_w = [np.zeros(w.shape) for w in self.weights]  # per l'iterazione precedente
+        pre_b = [np.zeros(b.shape) for b in self.biases]
         for j in range(epochs):
             random.shuffle(training_data)
             sum_w = [np.zeros(w.shape) for w in self.weights]
@@ -55,14 +56,24 @@ class Network(object):
                 der_b, der_w = self.back_propagation(input, label)
                 sum_b = [sb + derb for sb, derb in zip(sum_b, der_b)]
                 sum_w = [sw + derw for sw, derw in zip(sum_w, der_w)]
-            self.weights = [w - (eta/m) * wl * momentum for w, wl in zip(self.weights, sum_w)]
-            self.biases = [b - (eta/m) * bl * momentum for b, bl in zip(self.biases, sum_b)]
-            print("EPOCA " + str(j) + " NE HO INCARRATE " + str(self.evaluate(test_data)) + " SU 100")
+            self.weights = [w - (eta * wl + momentum * pwl) for w, wl, pwl in zip(self.weights, sum_w, pre_w)]
+            self.biases = [b - (eta * bl + momentum * pbl) for b, bl, pbl in zip(self.biases, sum_b, pre_b)]
+            pre_b = pre_b + sum_b
+            pre_w = pre_w + sum_w
+            print("EPOCA " + str(j+1) + " NE HO INCARRATE " + str(self.evaluate(test_data)) + " SU " + str(len(test_data)))
+            print("ERRORE EPOCA " + str(j+1) + str(self.calculate_error(test_data, error_function)) + " SU " + str(len(test_data)))
 
     def evaluate(self, test_data):
         test_results = [(np.argmax(self.forward_propagation(x)), y)
                         for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
+
+    def calculate_error(self, test_data, error_function):
+        err = 0
+        for inp, target in test_data:
+            out = self.forward_propagation(inp)
+            err = err + error_function(out, ld.vectorized_result(target))
+        return err
 
 
 def main():
@@ -70,7 +81,7 @@ def main():
     tr_d = ld.load_data(0, 2000)
     t_data = ld.load_test_data(100)
     print("INIZIO TRAINING")
-    val.batch_gradient_descent(tr_d, 50, 2.0, 0.95, t_data)
+    val.batch_gradient_descent(tr_d, 30, 0.002, 0.85, t_data)
 
 
 
