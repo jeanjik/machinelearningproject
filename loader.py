@@ -1,19 +1,19 @@
 import gzip
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 IMAGE_SIZE = 784
 
-def load_data(path, num_images):
+def load_data(num_images):
     with gzip.open('./trainingdata/training_set_images.gz', 'r') as file_training_set:
-        buffer = file_training_set.read(16)
+        buffer = file_training_set.read(16) # lettura di magic number e dimensioni 
         training_set = np.frombuffer(buffer, dtype=np.uint8).astype(np.float32)
-        buffer = file_training_set.read(num_images*IMAGE_SIZE) # letto un'immagine intera
+        buffer = file_training_set.read(num_images*IMAGE_SIZE) # lettura delle immagini
         training_set = np.frombuffer(buffer, dtype=np.uint8).astype(np.float32)
         training_set = training_set.reshape(num_images, IMAGE_SIZE)
         for i, row in enumerate(training_set):
             for j, col in enumerate(row):
-                training_set[i][j] = training_set[i][j]/255
+                training_set[i][j] = training_set[i][j]/255 # trasformo ciascun pixel in un numero da 0 a 1
         ret_set = []
         for row in training_set:
             ret_set.append(np.reshape(row, (784, 1)))

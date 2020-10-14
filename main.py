@@ -12,10 +12,10 @@ class Network(object):
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]  # ARRAY DI: matrice riga 1xL
         self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
 
-    def forward_propagation(self, a, activation_function=fn.sigmoid):
+    def forward_propagation(self, a, activation_function=fn.sigmoid, output_function=fn.identity):
         for b, w in zip(self.biases, self.weights):
             a = activation_function(np.dot(w, a) + b)
-        return a
+        return output_function(a)
 
     def back_propagation(self, input, target,
                          activation_function=fn.sigmoid, derivative_activation_function=fn.derivative_sigmoid,
@@ -44,10 +44,11 @@ class Network(object):
             derivative_err_w[-l] = np.dot(delta_error, activations[-l-1].transpose())
         return delta_err_b, derivative_err_w
 
-    def batch_gradient_descent(self, training_data, epochs, eta, momentum, test_data, error_function=fn.least_square):
+    def batch_gradient_descent(self, training_data, epochs, eta, momentum, test_data, k=None, error_function=fn.least_square):
         # training_data e' una lista di tuple (x, y) dove x e' l'input e y e' la corrispondente label
         pre_w = [np.zeros(w.shape) for w in self.weights]  # per l'iterazione precedente
         pre_b = [np.zeros(b.shape) for b in self.biases]
+        err = []
         for j in range(epochs):
             random.shuffle(training_data)
             sum_w = [np.zeros(w.shape) for w in self.weights]
@@ -61,12 +62,24 @@ class Network(object):
             pre_b = pre_b + sum_b
             pre_w = pre_w + sum_w
             print("EPOCA " + str(j+1) + " NE HO INCARRATE " + str(self.evaluate(test_data)) + " SU " + str(len(test_data)))
-            print("ERRORE EPOCA " + str(j+1) + str(self.calculate_error(test_data, error_function)) + " SU " + str(len(test_data)))
+            err.append(self.calculate_error(test_data, error_function))
+            print("ERRORE EPOCA " + str(j+1) + str(err[j]) + " SU " + str(len(test_data)))
+            if k is not None:
+                stop = self.check_early_stopping(err, j, k)
+                if stop is True:
+                    return err
+        return err
 
     def evaluate(self, test_data):
         test_results = [(np.argmax(self.forward_propagation(x)), y)
                         for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
+
+    def check_early_stopping(self, err, epoch, k):
+        if epoch - k > 0:
+            if err[epoch] > err[epoch - k]:
+                return True
+        return False
 
     def calculate_error(self, test_data, error_function):
         err = 0
@@ -78,11 +91,10 @@ class Network(object):
 
 def main():
     val = Network([784, 100, 10])
-    tr_d = ld.load_data(0, 2000)
+    tr_d = ld.load_data(2000)
     t_data = ld.load_test_data(100)
     print("INIZIO TRAINING")
-    val.batch_gradient_descent(tr_d, 30, 0.002, 0.85, t_data)
-
+    val.batch_gradient_descent(tr_d, 100, 0.002, 0.85, t_data)
 
 
 main()
