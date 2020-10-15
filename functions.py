@@ -40,6 +40,13 @@ def cross_entropy(output, target):
     err = [(t * np.log(o) + (1 - t) * np.log(1 - o)) for o, t in zip(output, target)]
     return - sum(err)
 
+def dictionary():
+    funzioni = dict()
+    funzioni["sigmoid"] = [sigmoid, derivative_sigmoid]
+    funzioni["identity"] = [identity, derivative_identity]
+    funzioni["cross_entropy"] = [cross_entropy, derivative_cross_entropy]
+    funzioni["least_square"] = [least_square, derivative_least_square]
+    return funzioni
 
 
 
