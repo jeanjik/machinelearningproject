@@ -19,8 +19,7 @@ class Network(object):
         for b, w, i in zip(self.biases, self.weights, range(0,self.num_layers)):
             f = self.dictionary_function[self.activation_function[i]][0]
             a = f(np.dot(w, a) + b)
-        output_function = self.dictionary_function[self.activation_function[-1]][0]
-        return output_function(a)
+        return a
 
     def back_propagation(self, input, target):
         delta_err_b = [np.zeros(b.shape) for b in self.biases]  # creiamo la matrice delta errore
@@ -37,12 +36,19 @@ class Network(object):
             activations.append(activation)
 
         # passaggio backward
-        derivative_error_function = self.dictionary_function[self.error_function][1]
-        delta_error = derivative_error_function(activations[-1], target)
-        derivative_activation_function = self.dictionary_function[self.activation_function[-1]][1]
-        act = derivative_activation_function(zs[-1])
-        delta_err_b[-1] = delta_error * act
-        derivative_err_w[-1] = np.dot(delta_error, activations[-2].transpose())
+        if (self.error_function == "cross_entropy" and self.activation_function[-1] == "softmax"):
+            derivative_cross_entropy_softmax=self.dictionary_function[self.activation_function[-1]][1]
+            delta_error = derivative_cross_entropy_softmax(activations[-1], target)
+            delta_err_b[-1] = delta_error
+            derivative_err_w[-1]=np.dot(delta_err_b[-1],activations[-2].transpose())
+        else:
+            derivative_error_function = self.dictionary_function[self.error_function][1]
+            delta_error = derivative_error_function(activations[-1], target)
+            derivative_activation_function = self.dictionary_function[self.activation_function[-1]][1]
+            act = derivative_activation_function(zs[-1])
+            delta_err_b[-1] = delta_error * act
+            derivative_err_w[-1] = np.dot(delta_error, activations[-2].transpose())
+
         for l in range(2, self.num_layers):
             z = zs[-l]
             derivative_activation_function = self.dictionary_function[self.activation_function[-l]][1]
@@ -71,7 +77,7 @@ class Network(object):
             pre_w = pre_w + sum_w
             print("EPOCA " + str(j+1) + " NE HO INCARRATE " + str(self.evaluate(test_data)) + " SU " + str(len(test_data)))
             error_function = self.dictionary_function[self.error_function][0]
-            err.append(self.calculate_error(test_data, error_function))
+            err.append(self.calculate_error(test_data, error_function)/len(training_data))
             print("ERRORE EPOCA " + str(j+1) + str(err[j]) + " SU " + str(len(test_data)))
             if k is not None:
                 stop = self.check_early_stopping(err, j, k)
@@ -99,11 +105,11 @@ class Network(object):
 
 
 def main():
-    error = "least_square"
-    activation = ["sigmoid", "sigmoid","identity"]
+    error = "cross_entropy"
+    activation = ["sigmoid", "softmax"]
     val = Network([784, 100, 10], activation, error)
     tr_d = ld.load_data(2000)
-    t_data = ld.load_test_data(100)
+    t_data = ld.load_test_data(1000)
     print("INIZIO TRAINING")
     val.batch_gradient_descent(tr_d, 100, 0.002, 0.85, t_data)
 
