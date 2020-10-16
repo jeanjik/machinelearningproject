@@ -2,6 +2,7 @@ import random
 import numpy as np
 import functions as fn
 import loader as ld
+np.seterr(divide='ignore', invalid='ignore')
 
 
 class Network(object):
@@ -76,8 +77,24 @@ class Network(object):
             pre_b = pre_b + sum_b
             pre_w = pre_w + sum_w
             print("EPOCA " + str(j+1) + " NE HO INCARRATE " + str(self.evaluate(test_data)) + " SU " + str(len(test_data)))
+
+            # valori_vp_vn_fp_fn=self.compute_vp_vn_fp_fn(test_data)
+            # accuracy, precision, recall, f1 = self.microaveraging(valori_vp_vn_fp_fn)
+            # print "MICROAVERAGING"
+            # print("ACCURATEZZA " + str(accuracy))
+            # print("PRECISONE " + str(precision))
+            # print("RECALL " + str(recall))
+            # print("F1 MEASURE " + str(f1))
+            #
+            # accuracy, precision, recall, f1 = self.macroaveraging(valori_vp_vn_fp_fn)
+            # print "MACROAVERAGING"
+            # print("ACCURATEZZA " + str(accuracy))
+            # print("PRECISONE " + str(precision))
+            # print("RECALL " + str(recall))
+            # print("F1 MEASURE " + str(f1))
+
             error_function = self.dictionary_function[self.error_function][0]
-            err.append(self.calculate_error(test_data, error_function)/len(training_data))
+            err.append(self.calculate_error(test_data, error_function)/len(test_data))
             print("ERRORE EPOCA " + str(j+1) + str(err[j]) + " SU " + str(len(test_data)))
             if k is not None:
                 stop = self.check_early_stopping(err, j, k)
@@ -89,6 +106,52 @@ class Network(object):
         test_results = [(np.argmax(self.forward_propagation(x)), y)
                         for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
+
+    def compute_vp_vn_fp_fn(self, test_data):
+        target = [y for (x, y) in test_data]
+        predizione = [np.argmax(self.forward_propagation(x)) for (x, y) in test_data]
+        valori=[]
+        for i in range(0,10):
+            vp = sum((t == i) and (p == i) for t, p in zip(target,predizione))
+            vn = sum((t != i) and (p != i) for t, p in zip(target,predizione))
+            fn = sum((t == i) and (p != i) for t, p in zip(target,predizione))
+            fp = sum((t != i) and (p == i) for t, p in zip(target,predizione))
+            valori.append([vp, vn, fn, fp])
+        return valori
+
+    def microaveraging(self, valori):
+        somma_vp=0
+        somma_vn=0
+        somma_fn=0
+        somma_fp=0
+        for val in valori:
+            somma_vp = somma_vp + val[0]
+            somma_vn = somma_vn + val[1]
+            somma_fn = somma_fn + val[2]
+            somma_fp = somma_fp + val[3]
+
+        accuracy = (somma_vp + somma_vn) / float((somma_vp + somma_vn + somma_fp + somma_fn))
+        precision = somma_vp / float(somma_vp + somma_fp)
+        recall = somma_vp / float(somma_vp + somma_fn)
+        f1 = (2 * precision * recall) / float(precision + recall)
+        return accuracy, precision, recall, f1
+
+    def macroaveraging(self,valori):
+        accuracy=[]
+        precision=[]
+        recall=[]
+        f1=[]
+
+        for val in valori:
+            accuracy.append((val[0] + val[1]) / float((val[0] + val[1] + val[3] + val[2])))
+            p = val[0] / float(val[0] + val[3])
+            precision.append(p)
+            r = val[0] / float(val[0] + val[2])
+            recall.append(r)
+            f1.append((2 * p * r) / float(p + r))
+
+        return np.mean(accuracy), np.mean(precision),np.mean(accuracy), np.mean(f1)
+
 
     def check_early_stopping(self, err, epoch, k):
         if epoch - k > 0:
