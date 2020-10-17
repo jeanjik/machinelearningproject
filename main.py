@@ -3,7 +3,9 @@ import numpy as np
 import functions as fn
 import loader as ld
 np.seterr(divide='ignore', invalid='ignore')
-
+from numpy import where
+from matplotlib import pyplot
+# generate dataset
 
 class Network(object):
     def __init__(self, sizes, activation, error):
@@ -41,14 +43,13 @@ class Network(object):
             derivative_cross_entropy_softmax=self.dictionary_function[self.activation_function[-1]][1]
             delta_error = derivative_cross_entropy_softmax(activations[-1], target)
             delta_err_b[-1] = delta_error
-            derivative_err_w[-1]=np.dot(delta_err_b[-1],activations[-2].transpose())
         else:
             derivative_error_function = self.dictionary_function[self.error_function][1]
             delta_error = derivative_error_function(activations[-1], target)
             derivative_activation_function = self.dictionary_function[self.activation_function[-1]][1]
             act = derivative_activation_function(zs[-1])
             delta_err_b[-1] = delta_error * act
-            derivative_err_w[-1] = np.dot(delta_error, activations[-2].transpose())
+        derivative_err_w[-1]=np.dot(delta_error,activations[-2].transpose())
 
         for l in range(2, self.num_layers):
             z = zs[-l]
@@ -111,11 +112,11 @@ class Network(object):
         target = [y for (x, y) in test_data]
         predizione = [np.argmax(self.forward_propagation(x)) for (x, y) in test_data]
         valori=[]
-        for i in range(0,10):
-            vp = sum((t == i) and (p == i) for t, p in zip(target,predizione))
-            vn = sum((t != i) and (p != i) for t, p in zip(target,predizione))
-            fn = sum((t == i) and (p != i) for t, p in zip(target,predizione))
-            fp = sum((t != i) and (p == i) for t, p in zip(target,predizione))
+        for i in range(0,self.sizes[-1]):
+            vp = sum((t == i) and (p == i) for t, p in zip(target,predizione)) #veri positivi
+            vn = sum((t != i) and (p != i) for t, p in zip(target,predizione)) #veri negativi
+            fn = sum((t == i) and (p != i) for t, p in zip(target,predizione)) #falsi negativi
+            fp = sum((t != i) and (p == i) for t, p in zip(target,predizione)) #falsi positivi
             valori.append([vp, vn, fn, fp])
         return valori
 
@@ -170,11 +171,11 @@ class Network(object):
 def main():
     error = "cross_entropy"
     activation = ["sigmoid", "softmax"]
-    val = Network([784, 100, 10], activation, error)
+    val = Network([784, 10, 10], activation, error)
     tr_d = ld.load_data(2000)
     t_data = ld.load_test_data(1000)
     print("INIZIO TRAINING")
-    val.batch_gradient_descent(tr_d, 100, 0.002, 0.85, t_data)
-
+    val.batch_gradient_descent(tr_d, 100, 0.002, 0.85, t_data, 30)
 
 main()
+
