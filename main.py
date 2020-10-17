@@ -3,9 +3,6 @@ import numpy as np
 import functions as fn
 import loader as ld
 np.seterr(divide='ignore', invalid='ignore')
-from numpy import where
-from matplotlib import pyplot
-# generate dataset
 
 class Network(object):
     def __init__(self, sizes, activation, error):
@@ -60,11 +57,13 @@ class Network(object):
             derivative_err_w[-l] = np.dot(delta_error, activations[-l - 1].transpose())
         return delta_err_b, derivative_err_w
 
-    def batch_gradient_descent(self, training_data, epochs, eta, momentum, test_data, k=None):
+    def batch_gradient_descent(self, training_data, epochs, eta, momentum, validation_data, k=None):
         # training_data e' una lista di tuple (x, y) dove x e' l'input e y e' la corrispondente label
         pre_w = [np.zeros(w.shape) for w in self.weights]  # per l'iterazione precedente
         pre_b = [np.zeros(b.shape) for b in self.biases]
-        err = []
+        err_validation = []
+        err_training = []
+        error_function = self.dictionary_function[self.error_function][0]
         for j in range(epochs):
             random.shuffle(training_data)
             sum_w = [np.zeros(w.shape) for w in self.weights]
@@ -77,82 +76,60 @@ class Network(object):
             self.biases = [b - (eta * bl + momentum * pbl) for b, bl, pbl in zip(self.biases, sum_b, pre_b)]
             pre_b = pre_b + sum_b
             pre_w = pre_w + sum_w
-            print("EPOCA " + str(j+1) + " NE HO INCARRATE " + str(self.evaluate(test_data)) + " SU " + str(len(test_data)))
-
-            # valori_vp_vn_fp_fn=self.compute_vp_vn_fp_fn(test_data)
-            # accuracy, precision, recall, f1 = self.microaveraging(valori_vp_vn_fp_fn)
-            # print "MICROAVERAGING"
-            # print("ACCURATEZZA " + str(accuracy))
-            # print("PRECISONE " + str(precision))
-            # print("RECALL " + str(recall))
-            # print("F1 MEASURE " + str(f1))
-            #
-            # accuracy, precision, recall, f1 = self.macroaveraging(valori_vp_vn_fp_fn)
-            # print "MACROAVERAGING"
-            # print("ACCURATEZZA " + str(accuracy))
-            # print("PRECISONE " + str(precision))
-            # print("RECALL " + str(recall))
-            # print("F1 MEASURE " + str(f1))
-
-            error_function = self.dictionary_function[self.error_function][0]
-            err.append(self.calculate_error(test_data, error_function)/len(test_data))
-            print("ERRORE EPOCA " + str(j+1) + str(err[j]) + " SU " + str(len(test_data)))
+            # print("EPOCA " + str(j+1) + " SONO CORRETTE " + str(self.evaluate(validation_data)) + " SU "
+            #      + str(len(validation_data)))
+            err_validation.append(self.calculate_error(validation_data, error_function))
+            err_training.append(self.calculate_error(training_data, error_function))
+            print("ERRORE VALIDATION EPOCA " + str(j+1) + str(err_validation[j]) + " SU " + str(len(validation_data)))
+            print("ERRORE TRAINING EPOCA " + str(j+1) + str(err_training[j]) + " SU " + str(len(training_data)))
+            print("FINE EPOCA" + str(j+1))
             if k is not None:
-                stop = self.check_early_stopping(err, j, k)
+                stop = self.check_early_stopping(err_validation, j, k)
                 if stop is True:
-                    return err
-        return err
+                    return err_validation
+        return err_training, err_validation
 
-    def evaluate(self, test_data):
-        test_results = [(np.argmax(self.forward_propagation(x)), y)
-                        for (x, y) in test_data]
-        return sum(int(x == y) for (x, y) in test_results)
-
-    def compute_vp_vn_fp_fn(self, test_data):
-        target = [y for (x, y) in test_data]
-        predizione = [np.argmax(self.forward_propagation(x)) for (x, y) in test_data]
-        valori=[]
+    def compute_tp_tn_fp_fn(self, test_data):
+        target = [np.argmax(y) for (x, y) in test_data]
+        prediction = [np.argmax(self.forward_propagation(x)) for (x, y) in test_data]
+        values = []
         for i in range(0,self.sizes[-1]):
-            vp = sum((t == i) and (p == i) for t, p in zip(target,predizione)) #veri positivi
-            vn = sum((t != i) and (p != i) for t, p in zip(target,predizione)) #veri negativi
-            fn = sum((t == i) and (p != i) for t, p in zip(target,predizione)) #falsi negativi
-            fp = sum((t != i) and (p == i) for t, p in zip(target,predizione)) #falsi positivi
-            valori.append([vp, vn, fn, fp])
-        return valori
+            true_positives = sum((t == i) and (p == i) for t, p in zip(target, prediction)) #veri positivi
+            true_negatives = sum((t != i) and (p != i) for t, p in zip(target, prediction)) #veri negativi
+            false_negatives = sum((t == i) and (p != i) for t, p in zip(target, prediction)) #falsi negativi
+            false_positives = sum((t != i) and (p == i) for t, p in zip(target, prediction)) #falsi positivi
+            values.append([true_positives, true_negatives, false_negatives, false_positives])
+        return values
 
-    def microaveraging(self, valori):
-        somma_vp=0
-        somma_vn=0
-        somma_fn=0
-        somma_fp=0
-        for val in valori:
-            somma_vp = somma_vp + val[0]
-            somma_vn = somma_vn + val[1]
-            somma_fn = somma_fn + val[2]
-            somma_fp = somma_fp + val[3]
-
-        accuracy = (somma_vp + somma_vn) / float((somma_vp + somma_vn + somma_fp + somma_fn))
-        precision = somma_vp / float(somma_vp + somma_fp)
-        recall = somma_vp / float(somma_vp + somma_fn)
+    def microaveraging(self, values):
+        sum_tp = 0
+        sum_tn = 0
+        sum_fn = 0
+        sum_fp = 0
+        for val in values:
+            sum_tp = sum_tp + val[0]
+            sum_tn = sum_tn + val[1]
+            sum_fn = sum_fn + val[2]
+            sum_fp = sum_fp + val[3]
+        accuracy = (sum_tp + sum_tn) / float((sum_tp + sum_tn + sum_fp + sum_fn))
+        precision = sum_tp / float(sum_tp + sum_fp)
+        recall = sum_tp / float(sum_tp + sum_fn)
         f1 = (2 * precision * recall) / float(precision + recall)
         return accuracy, precision, recall, f1
 
-    def macroaveraging(self,valori):
-        accuracy=[]
-        precision=[]
-        recall=[]
-        f1=[]
-
-        for val in valori:
+    def macroaveraging(self, values):
+        accuracy = []
+        precision = []
+        recall = []
+        f1 = []
+        for val in values:
             accuracy.append((val[0] + val[1]) / float((val[0] + val[1] + val[3] + val[2])))
             p = val[0] / float(val[0] + val[3])
             precision.append(p)
             r = val[0] / float(val[0] + val[2])
             recall.append(r)
             f1.append((2 * p * r) / float(p + r))
-
-        return np.mean(accuracy), np.mean(precision),np.mean(accuracy), np.mean(f1)
-
+        return np.mean(accuracy), np.mean(precision), np.mean(accuracy), np.mean(f1)
 
     def check_early_stopping(self, err, epoch, k):
         if epoch - k > 0:
@@ -164,18 +141,49 @@ class Network(object):
         err = 0
         for inp, target in test_data:
             out = self.forward_propagation(inp)
-            err = err + error_function(out, ld.vectorized_result(target))
-        return err
+            err = err + error_function(out, target)
+        return err / len(test_data)
+
+    def evaluate(self, test_data):
+        test_results = [(np.argmax(self.forward_propagation(x)), np.argmax(y))
+                        for (x, y) in test_data]
+        return sum(int(x == y) for (x, y) in test_results)
 
 
-def main():
+if __name__ == "__main__":
     error = "cross_entropy"
     activation = ["sigmoid", "softmax"]
-    val = Network([784, 10, 10], activation, error)
-    tr_d = ld.load_data(2000)
-    t_data = ld.load_test_data(1000)
-    print("INIZIO TRAINING")
-    val.batch_gradient_descent(tr_d, 100, 0.002, 0.85, t_data, 30)
-
-main()
+    val = Network([784, 100, 10], activation, error)
+    dim = val.sizes[1]
+    tr_d = ld.load_data(3000)
+    training_set = tr_d[:2000]
+    validation_set = tr_d[2000:2500]
+    test_set = tr_d[2500:3000]
+    epochs = 150; momentum = 0.90; eta = 0.0024#; k = 30
+    err_training, err_validation = val.batch_gradient_descent(training_set, epochs, eta, momentum, validation_set)
+    err_test = val.calculate_error(test_set, val.dictionary_function[val.error_function][0])
+    print("CALCOLO ERRORE SU TEST SET" + str(err_test))
+    guessed_right = val.evaluate(test_set)
+    print("NE HO INDOVINATE " + str(guessed_right))
+    values = val.compute_tp_tn_fp_fn(test_set)
+    # accuracy, precision, recall, f1 = val.microaveraging(values)
+    # print "MICROAVERAGING"
+    # print("ACCURATEZZA " + str(accuracy))
+    # print("PRECISONE " + str(precision))
+    # print("RECALL " + str(recall))
+    # print("F1 MEASURE " + str(f1))
+    accuracy, precision, recall, f1 = val.macroaveraging(values)
+    error_trend = np.asarray([(j+1, tr, val) for j, tr, val in zip(range(epochs), err_training, err_validation)])
+    print "MACROAVERAGING"
+    print("ACCURATEZZA " + str(accuracy))
+    print("PRECISONE " + str(precision))
+    print("RECALL " + str(recall))
+    print("F1 MEASURE " + str(f1))
+    results = np.asarray([[dim, epochs, momentum, eta, err_training[-1], err_validation[-1], err_test,
+                           guessed_right, accuracy, precision, recall, f1]])
+    with open("./results/res.csv", "ab") as f:
+        np.savetxt(f, results, delimiter=",", fmt="%1.6f")
+    error_trend_file_path = "./results/error_trend_test5.csv"
+    with open(error_trend_file_path, "w+") as f:
+        np.savetxt(f, error_trend, delimiter=",", fmt="%1.6f")
 
