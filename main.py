@@ -153,13 +153,13 @@ class Network(object):
 if __name__ == "__main__":
     error = "cross_entropy"
     activation = ["sigmoid", "softmax"]
-    val = Network([784, 100, 10], activation, error)
+    val = Network([784, 300, 10], activation, error)
     dim = val.sizes[1]
     tr_d = ld.load_data(3000)
     training_set = tr_d[:2000]
     validation_set = tr_d[2000:2500]
     test_set = tr_d[2500:3000]
-    epochs = 150; momentum = 0.90; eta = 0.0024#; k = 30
+    epochs = 150; momentum = 0.86; eta = 0.0026#; k = 30
     err_training, err_validation = val.batch_gradient_descent(training_set, epochs, eta, momentum, validation_set)
     err_test = val.calculate_error(test_set, val.dictionary_function[val.error_function][0])
     print("CALCOLO ERRORE SU TEST SET" + str(err_test))
@@ -183,7 +183,7 @@ if __name__ == "__main__":
                            guessed_right, accuracy, precision, recall, f1]])
     with open("./results/res.csv", "ab") as f:
         np.savetxt(f, results, delimiter=",", fmt="%1.6f")
-    error_trend_file_path = "./results/error_trend_test5.csv"
+    error_trend_file_path = "./results/error_trend_test10.csv"
     with open(error_trend_file_path, "w+") as f:
         np.savetxt(f, error_trend, delimiter=",", fmt="%1.6f")
 
