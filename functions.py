@@ -34,11 +34,14 @@ def derivative_cross_entropy_softmax(output, target):
 
 def dictionary():
     functions = dict()
+    #funzioni di attivazione con derivate
     functions["sigmoid"] = [sigmoid, derivative_sigmoid]
     functions["identity"] = [identity, derivative_identity]
+    #alla funzione di attivazione softmax e' stata associata la derivata di cross-entropy con softmax
+    functions["softmax"] = [softmax, derivative_cross_entropy_softmax]
+    #funzioni di errore con derivate
     functions["cross_entropy"] = [cross_entropy, derivative_cross_entropy]
     functions["least_square"] = [least_square, derivative_least_square]
-    functions["softmax"] = [softmax, derivative_cross_entropy_softmax]
     return functions
 
 
